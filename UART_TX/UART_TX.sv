@@ -31,7 +31,7 @@ always_ff @(posedge CLK or negedge RST) begin
     end else begin
         current_state <= next_state;
 
-        if (current_state == START) begin
+        if (current_state == WAIT) begin
             shift_reg <= P_DATA;
             counter   <= 0;
         end
@@ -87,7 +87,7 @@ always @(*) begin
 
     WAIT: begin
         TX_OUT = 1;
-        Busy = 0;
+        Busy = 1;
     end
 
     START: begin
