@@ -1,0 +1,68 @@
+$date
+	Wed Feb 18 11:08:05 2026
+$end
+$version
+	Icarus Verilog
+$end
+$timescale
+	1ps
+$end
+$scope module RST_SYNC_TB $end
+$var wire 1 ! SYNC_RST $end
+$var reg 1 " CLK $end
+$var reg 1 # RST $end
+$scope module dut $end
+$var wire 1 " CLK $end
+$var wire 1 # RST $end
+$var parameter 32 $ NUM_STAGES $end
+$var reg 1 ! SYNC_RST $end
+$var reg 1 % sync_reg $end
+$upscope $end
+$upscope $end
+$enddefinitions $end
+$comment Show the parameter values. $end
+$dumpall
+b10 $
+$end
+#0
+$dumpvars
+0%
+0#
+0"
+0!
+$end
+#5000
+1"
+#10000
+0"
+#15000
+1"
+#19000
+1#
+#20000
+0"
+#25000
+1%
+1"
+#30000
+0"
+#35000
+1!
+1"
+#40000
+0"
+#45000
+1"
+#48000
+0%
+0!
+0#
+#50000
+0"
+#55000
+1"
+#60000
+0"
+#65000
+1"
+#68000
