@@ -138,6 +138,15 @@ initial
 
  // Check Output
  chk_rx_out(8'hBB,9) ;
+
+// UART Configuration (Parity Enable = 1 && Parity Type = 1 && Prescale = 32)
+ UART_CONFG (1'b1,1'b1,6'd1);
+ 
+ // Load Data 
+ DATA_IN(8'hff);  
+
+ // Check Output
+ chk_rx_out(8'hff,10) ;
  
 #4000
 

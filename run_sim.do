@@ -78,6 +78,7 @@ add wave -color White -radix hex /SYS_TOP_TBBBB/DUT/Wr_D
 
 add wave -color Green -radix hex /SYS_TOP_TBBBB/DUT/U_SYS_CTRL/current_state
 add wave -color Green -radix hex /SYS_TOP_TBBBB/DUT/U_SYS_CTRL/next_state
+add wave -color Green -radix hex /SYS_TOP_TBBBB/DUT/U_SYS_CTRL/CMD_IN
 
 
 ## -------- RegFile --------

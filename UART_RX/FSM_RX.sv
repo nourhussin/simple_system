@@ -31,7 +31,7 @@ module FSM_RX(
   logic frame_error, parity_error;
   logic [5:0] count_done;
 
-  assign count_done = prescale - 6'd1;
+  assign count_done = prescale >1 ? prescale - 6'd1 : 1;
 
   always_ff @(posedge CLK or negedge RST) begin
     if (!RST) begin

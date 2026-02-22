@@ -559,7 +559,7 @@ task CHECK_WR ;
 		end
 	else
 		begin
-			$display("Write Operation is failed with configurations PARITY_ENABLE=%d PARITY_TYPE=%d  PRESCALE=%d  ",DUT.UART_Config[0],DUT.UART_Config[1],DUT.UART_Config[7:2]);
+			$display("Write Operation is failed with configurations PARITY_ENABLE=%d PARITY_TYPE=%d  PRESCALE=%d  Got:%d  Expected:%d",DUT.UART_Config[0],DUT.UART_Config[1],DUT.UART_Config[7:2],DUT.U_RegFile.regfile[ADDR], DATA);
 		end	
  end
 endtask 
@@ -603,7 +603,7 @@ task CHECK_RD ;
 		end
 	else
 		begin
-			$display("Read Operation is failed with configurations PARITY_ENABLE=%d PARITY_TYPE=%d  PRESCALE=%d  ",DUT.UART_Config[0],DUT.UART_Config[1],DUT.UART_Config[7:2]);
+			$display("Read Operation is failed with configurations PARITY_ENABLE=%d PARITY_TYPE=%d  PRESCALE=%d Got:%d  Expected:%d  ",DUT.UART_Config[0],DUT.UART_Config[1],DUT.UART_Config[7:2],gener_out, expec_out);
 		end
  end
 endtask

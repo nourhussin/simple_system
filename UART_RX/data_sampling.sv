@@ -16,9 +16,9 @@ logic [5:0] mid_bit_before;
 /*-----------------------------------
   Mid-bit calculation
 -----------------------------------*/
-assign mid_bit        = (prescale >> 1) - 1'b1;
-assign mid_bit_after  = mid_bit + 1'b1;
-assign mid_bit_before = mid_bit - 1'b1;
+assign mid_bit        = prescale > 1 ? (prescale >> 1) - 1'b1 : 0;
+assign mid_bit_after  = prescale > 1 ? mid_bit + 1'b1         : 0;
+assign mid_bit_before = prescale > 1 ? mid_bit - 1'b1         : 0;
 
 /*-----------------------------------
   Take 3 samples around mid-bit

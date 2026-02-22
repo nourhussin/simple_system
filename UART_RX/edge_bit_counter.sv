@@ -42,6 +42,6 @@ end
 /*-----------------------------------
   Count Done Logic
 -----------------------------------*/
-assign count_done = (edge_cnt == prescale - 1'b1);
+assign count_done = prescale > 1 ? (edge_cnt == prescale - 1'b1) : 1;
 
 endmodule

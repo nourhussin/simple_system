@@ -30,7 +30,7 @@ module SYS_TOP #(
     logic RX_OUT_V;
     
     // Clock dividers & ratios
-    logic [DATA_WIDTH-1:0] RX_div_ratio, Div_Ratio, UART_Config, RD_DATA;
+    logic [DATA_WIDTH-1:0] Div_Ratio, UART_Config, RD_DATA;
     
     // ALU control
     logic [ALU_FUN_WIDTH-1:0] ALU_FUN;
@@ -144,12 +144,6 @@ module SYS_TOP #(
         .FRAME_ERROR    (framing_error)
     );
 
-    ////////////// DIV_MUX //////////////
-    DIV_MUX U_DIV (
-        .prescale      (UART_Config[7:2]),
-        .RX_div_ratio  (RX_div_ratio)
-    );
-
     ////////////// UART_DATA_SYNC //////////////
     Data_Sync VLD_DATA_SYNC (
         .dest_clk       (REF_CLK),
@@ -164,7 +158,7 @@ module SYS_TOP #(
     ClkDiv RX_CLK_DIV (
         .i_ref_clk (UART_CLK),
         .i_rst_n  (SYNC_RST_UART),
-        .i_div_ratio(RX_div_ratio),
+        .i_div_ratio(Div_Ratio),
         .i_clk_en  (clk_div_en),
         .o_div_clk (RX_CLK)
     );
@@ -173,7 +167,7 @@ module SYS_TOP #(
     ClkDiv TX_CLK_DIV (
         .i_ref_clk (UART_CLK),
         .i_rst_n  (SYNC_RST_UART),
-        .i_div_ratio(Div_Ratio),
+        .i_div_ratio({2'b00,UART_Config[7:2]}),
         .i_clk_en  (clk_div_en),
         .o_div_clk (TX_CLK)
     );

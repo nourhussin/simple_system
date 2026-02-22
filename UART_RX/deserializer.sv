@@ -12,7 +12,7 @@ logic [2:0] bit_index; // counts bits from 0 to 7
 logic latch_bit;
 
 // Decide when to latch a new bit (at the end of each bit period)
-assign latch_bit = deser_en && (edge_cnt == prescale - 1);
+assign latch_bit = deser_en && (prescale > 1 ? (edge_cnt == prescale - 1) : 1);
 
 always_ff @(posedge CLK or negedge RST) begin
     if (!RST) begin
