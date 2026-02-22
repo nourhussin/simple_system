@@ -1,6 +1,6 @@
 import SYS_PKG::*;
 
-module ALU #(parameter DATA_WIDTH)(
+module ALU #(parameter DATA_WIDTH = 8)(
     input logic CLK, RST,
     input logic Enable,
 

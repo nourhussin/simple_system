@@ -4,7 +4,7 @@ module SYS_TOP #(
     parameter int OPERAND_WIDTH   = 8,
     parameter int ALU_OUT_WIDTH   = 16,
     parameter int DATA_WIDTH      = 8,
-    parameter int ADDR_WIDTH      = 4,
+    parameter int RF_ADDR      = 4,
     parameter int PRESCALE_WIDTH  = 6,
     parameter int ALU_FUN_WIDTH   = 4
 )(
@@ -23,13 +23,14 @@ module SYS_TOP #(
     
     // Data and Address buses
     logic [DATA_WIDTH-1:0] Rd_D, Wr_D, WR_DATA;
-    logic [ADDR_WIDTH-1:0] Addr;
+    logic [RF_ADDR-1:0] Addr;
     
     // RX Data signals
     logic [DATA_WIDTH-1:0] SYNC_RX_DATA, ASYNC_RX_DATA;
+    logic RX_OUT_V;
     
     // Clock dividers & ratios
-    logic [DATA_WIDTH-1:0] prescale, RX_div_ratio, Div_Ratio, UART_Config, RD_DATA;
+    logic [DATA_WIDTH-1:0] RX_div_ratio, Div_Ratio, UART_Config, RD_DATA;
     
     // ALU control
     logic [ALU_FUN_WIDTH-1:0] ALU_FUN;
@@ -43,11 +44,11 @@ module SYS_TOP #(
     // FIFO and control signals
     logic Gate_EN, F_EMPTY, BUSY, RD_INC, FIFO_FULL, WR_INC;
     logic WrEn, WrEn_P, RdEn, Rd_D_VLD, EN, OUT_Valid;
-    logic SYNC_RX_VLD, SYNC_RX_VLD_PULSE;
+    logic SYNC_RX_VLD;
     logic clk_div_en;
 
     ////////////// ASYNC_FIFO //////////////
-    async_fifo U_ASYNC_FIFO (
+    async_fifo  #(.width(DATA_WIDTH)) U_ASYNC_FIFO(
         .wclk    (REF_CLK),
         .wrst_n  (SYNC_RST_REF),
         .w_en    (WR_INC),
@@ -105,10 +106,10 @@ module SYS_TOP #(
         .RST       (SYNC_RST_REF),
         .A         (Op_A),
         .B         (Op_B),
-        .ALU_FUN   (ALU_FUN),
+        .ALU_FUN   (opcode_t'(ALU_FUN)),
         .Enable    (EN),
         .ALU_OUT   (ALU_OUT),
-        .OUT_Valid (OUT_Valid)
+        .OUT_VALID (OUT_Valid)
     );
 
     ////////////// PULSE_GEN(RD_INC) //////////////
@@ -150,7 +151,7 @@ module SYS_TOP #(
     );
 
     ////////////// UART_DATA_SYNC //////////////
-    DATA_SYNC VLD_DATA_SYNC (
+    Data_Sync VLD_DATA_SYNC (
         .dest_clk       (REF_CLK),
         .dest_rst       (SYNC_RST_REF),
         .unsync_bus(ASYNC_RX_DATA),
@@ -162,18 +163,18 @@ module SYS_TOP #(
     ////////////// RX_CLK_DIV //////////////
     ClkDiv RX_CLK_DIV (
         .i_ref_clk (UART_CLK),
-        .i_rst_n  (SYNC_RST_REF),
+        .i_rst_n  (SYNC_RST_UART),
         .i_div_ratio(RX_div_ratio),
-        .i_clk_en  (1'b1),
+        .i_clk_en  (clk_div_en),
         .o_div_clk (RX_CLK)
     );
 
     ////////////// TX_CLK_DIV //////////////
     ClkDiv TX_CLK_DIV (
         .i_ref_clk (UART_CLK),
-        .i_rst_n  (SYNC_RST_REF),
+        .i_rst_n  (SYNC_RST_UART),
         .i_div_ratio(Div_Ratio),
-        .i_clk_en  (1'b1),
+        .i_clk_en  (clk_div_en),
         .o_div_clk (TX_CLK)
     );
 
