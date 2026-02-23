@@ -95,9 +95,7 @@ module SYS_CTRL
     always_ff @(posedge CLK or negedge RST) begin
         if (!RST)
             CMD_IN <= 8'd0;
-        else if (current_state == IDLE && RX_D_VLD)
-            CMD_IN <= RX_P_Data;
-        else if ((current_state == FIFO_WR || current_state == FIFO_WR_MSB) && RX_D_VLD)
+        else if (((current_state == IDLE) | (current_state == FIFO_WR) | (current_state == FIFO_WR_MSB)) && RX_D_VLD)
             CMD_IN <= RX_P_Data;
     end
 
@@ -143,121 +141,12 @@ module SYS_CTRL
     // Next-state logic
     // =========================================================
     always_comb begin
-        next_state = current_state; // Default: hold current state
+        next_state = current_state;
 
-        case (current_state)
-
-            // --------------------------------------------------
-            // IDLE: wait for the first command byte
-            // --------------------------------------------------
-            IDLE: begin
-                if (RX_D_VLD)
-                    next_state = CMD;
-            end
-
-            // --------------------------------------------------
-            // CMD: CMD_IN is already latched from IDLE —
-            // decode immediately, no extra RX_D_VLD needed
-            // --------------------------------------------------
-            CMD: begin
-                case (CMD_IN)
-                    8'hAA:   next_state = WR_ADDR;
-                    8'hBB:   next_state = RD_ADDR;
-                    8'hCC:   next_state = CAP_A;
-                    8'hDD:   next_state = CAP_FUN;
-                    default: next_state = IDLE;
-                endcase
-            end
-
-            // --------------------------------------------------
-            // WR_ADDR: wait for the address byte
-            // --------------------------------------------------
-            WR_ADDR: begin
-                if (RX_D_VLD)
-                    next_state = WR_DATA;
-            end
-
-            // --------------------------------------------------
-            // WR_DATA: wait for the data byte, then go idle
-            // --------------------------------------------------
-            WR_DATA: begin
-                if (RX_D_VLD)
-                    next_state = IDLE;
-            end
-
-            // --------------------------------------------------
-            // RD_ADDR: address is latched on RX_D_VLD;
-            // wait until register file has valid data
-            // and TX FIFO has space before transmitting
-            // --------------------------------------------------
-            RD_ADDR: begin
-                if (RdData_Valid && !FIFO_FULL)
-                    next_state = FIFO_WR;
-            end
-
-            // --------------------------------------------------
-            // CAP_A: wait for operand A byte
-            // --------------------------------------------------
-            CAP_A: begin
-                if (RX_D_VLD)
-                    next_state = CAP_B;
-            end
-
-            // --------------------------------------------------
-            // CAP_B: wait for operand B byte
-            // --------------------------------------------------
-            CAP_B: begin
-                if (RX_D_VLD)
-                    next_state = CAP_FUN;
-            end
-
-            // --------------------------------------------------
-            // CAP_FUN: function byte is latched; ALU is enabled.
-            // Wait until ALU produces a valid result and
-            // TX FIFO has space before transmitting.
-            // --------------------------------------------------
-            CAP_FUN: begin
-                if (OUT_Valid && !FIFO_FULL)
-                    next_state = FIFO_WR_LSB;
-            end
-
-            // --------------------------------------------------
-            // FIFO_WR: read result byte has been pushed.
-            // Accept next command if one arrives, else go idle.
-            // --------------------------------------------------
-            FIFO_WR: begin
-                next_state = RX_D_VLD ? CMD : IDLE;
-            end
-
-            // --------------------------------------------------
-            // FIFO_WR_LSB: ALU low byte pushed;
-            // move immediately to send the high byte
-            // --------------------------------------------------
-            FIFO_WR_LSB: begin
-                next_state = FIFO_WR_MSB;
-            end
-
-            // --------------------------------------------------
-            // FIFO_WR_MSB: ALU high byte pushed.
-            // Accept next command if one arrives, else go idle.
-            // --------------------------------------------------
-            FIFO_WR_MSB: begin
-                next_state = RX_D_VLD ? CMD : IDLE;
-            end
-
-            default: next_state = IDLE;
-
-        endcase
-    end
-
-    // =========================================================
-    // Output logic (Moore-style; ALU_FUN always from register)
-    // =========================================================
-    always_comb begin
-        // ------ Safe defaults for all outputs ------
-        ALU_FUN    = ALU_FUN_REG; // Driven from registered value — glitch-free
+        // -------- Default outputs --------
+        ALU_FUN    = ALU_FUN_REG;
         WrEN       = 1'b0;
-        clk_div_en = 1'b1;        // Clock divider kept enabled by default
+        clk_div_en = 1'b1;
         TX_D_VLD   = 1'b0;
         RdEn       = 1'b0;
         CLK_EN     = 1'b0;
@@ -268,83 +157,98 @@ module SYS_CTRL
 
         case (current_state)
 
-            // --------------------------------------------------
-            // WR_DATA: drive address and data to register file;
-            // assert write enable for one cycle
-            // --------------------------------------------------
+            // =============================================
+            // IDLE : wait for command byte
+            // =============================================
+            IDLE: begin
+                if (RX_D_VLD)
+                    next_state = CMD;  // go capture command
+            end
+
+            // =============================================
+            // CMD : decode captured command
+            // =============================================
+            CMD: begin
+                case (CMD_IN)
+                    8'hAA:   next_state = WR_ADDR;
+                    8'hBB:   next_state = RD_ADDR;
+                    8'hCC:   next_state = CAP_A;
+                    8'hDD:   next_state = CAP_FUN;
+                    default: next_state = IDLE;
+                endcase
+            end
+
+            // =============================================
+            // WRITE FLOW
+            // =============================================
+            WR_ADDR: begin
+                if (RX_D_VLD)
+                    next_state = WR_DATA;
+            end
+
             WR_DATA: begin
+                if (RX_D_VLD)
+                    next_state = IDLE;   // always return cleanly
                 Address = ADDRESS;
-                WrEN    = 1'b1;
+                WrEN    = RX_D_VLD;     // pulse only when valid
                 WrData  = RX_P_Data;
             end
 
-            // --------------------------------------------------
-            // RD_ADDR: drive latched address and assert read
-            // enable so the register file begins the read
-            // --------------------------------------------------
+            // =============================================
+            // READ FLOW
+            // =============================================
             RD_ADDR: begin
                 Address = ADDRESS;
                 RdEn    = 1'b1;
+                if (RdData_Valid && !FIFO_FULL)
+                    next_state = FIFO_WR;
             end
 
-            // --------------------------------------------------
-            // CAP_A: write incoming byte into REG0 (operand A)
-            // --------------------------------------------------
+            FIFO_WR: begin
+                TX_D_VLD  = 1'b1;
+                TX_P_DATA = DATA_OUT[7:0];
+                next_state = RX_D_VLD ? CMD : IDLE;
+            end
+
+            // =============================================
+            // ALU NEW OPERANDS
+            // =============================================
             CAP_A: begin
                 Address = 4'd0;
                 WrData  = RX_P_Data;
-                WrEN    = 1'b1;
+                WrEN    = RX_D_VLD;
+                if (RX_D_VLD)
+                    next_state = CAP_B;
             end
 
-            // --------------------------------------------------
-            // CAP_B: write incoming byte into REG1 (operand B)
-            // --------------------------------------------------
             CAP_B: begin
                 Address = 4'd1;
                 WrData  = RX_P_Data;
-                WrEN    = 1'b1;
+                WrEN    = RX_D_VLD;
+                if (RX_D_VLD)
+                    next_state = CAP_FUN;
             end
 
-            // --------------------------------------------------
-            // CAP_FUN: enable ALU and its gated clock while
-            // waiting for the result
-            // --------------------------------------------------
             CAP_FUN: begin
                 ALU_EN = 1'b1;
                 CLK_EN = 1'b1;
+                if (OUT_Valid && !FIFO_FULL)
+                    next_state = FIFO_WR_LSB;
             end
 
-            // --------------------------------------------------
-            // FIFO_WR: push the single read-result byte to TX
-            // --------------------------------------------------
-            FIFO_WR: begin
-                CLK_EN    = 1'b1;
-                TX_D_VLD  = 1'b1;
-                TX_P_DATA = DATA_OUT[7:0];
-            end
-
-            // --------------------------------------------------
-            // FIFO_WR_LSB: push low byte of ALU result to TX
-            // --------------------------------------------------
             FIFO_WR_LSB: begin
-                CLK_EN    = 1'b1;
                 TX_D_VLD  = 1'b1;
                 TX_P_DATA = DATA_OUT[7:0];
+                next_state = FIFO_WR_MSB;
             end
 
-            // --------------------------------------------------
-            // FIFO_WR_MSB: push high byte of ALU result to TX.
-            // De-assert CLK_EN — ALU clock no longer needed.
-            // --------------------------------------------------
             FIFO_WR_MSB: begin
-                CLK_EN    = 1'b0;
                 TX_D_VLD  = 1'b1;
                 TX_P_DATA = DATA_OUT[15:8];
+                next_state = RX_D_VLD ? CMD : IDLE;
             end
 
-            // All other states use the defaults set above
-            default: ;
-
+            default: next_state = IDLE;
         endcase
     end
 
