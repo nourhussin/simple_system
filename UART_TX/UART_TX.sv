@@ -16,10 +16,10 @@ module UART_TX (
 
 enum logic [2:0] {IDLE, WAIT, START, SERIAL, PARITY, ENDD} current_state, next_state;
 logic [2:0] counter;
-logic [7:0] shift_reg;
+logic [7:0] shift_reg,P_DATA_latch;
 logic serial_bit, parity_bit;
 
-assign parity_bit = ^{PAR_TYP,P_DATA};
+assign parity_bit = ^{PAR_TYP,P_DATA_latch};
 assign serial_bit = shift_reg[0];
 
 //---------------- State Register ---------------------
@@ -28,11 +28,13 @@ always_ff @(posedge CLK or negedge RST) begin
         current_state <= IDLE;
         counter       <= 0;
         shift_reg     <= 0;
+        P_DATA_latch  <= 0;
     end else begin
         current_state <= next_state;
 
         if (current_state == WAIT) begin
             shift_reg <= P_DATA;
+            P_DATA_latch <= P_DATA;
             counter   <= 0;
         end
         else if (current_state == SERIAL) begin
@@ -87,7 +89,7 @@ always @(*) begin
 
     WAIT: begin
         TX_OUT = 1;
-        Busy = 1;
+        Busy = 0;
     end
 
     START: begin

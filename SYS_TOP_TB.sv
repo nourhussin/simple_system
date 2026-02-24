@@ -553,7 +553,7 @@ task CHECK_WR ;
  begin
 	wait(DUT.WrEn_P)
 	repeat(2) @(posedge REF_CLK); 
-	if(DUT.U_RegFile.regfile[ADDR[ADDR_WIDTH_TB-1:0]] == DATA)
+	if(DUT.U_RegFile.regfile[ADDR] == DATA)
 		begin
 			$display("Write Operation is succeeded with configurations PARITY_ENABLE=%d PARITY_TYPE=%d  PRESCALE=%d  ",DUT.UART_Config[0],DUT.UART_Config[1],DUT.UART_Config[7:2]);
 		end
@@ -585,17 +585,17 @@ task CHECK_RD ;
 	//calculate expected parity bit 	
     if(DUT.UART_Config[0])
 		if(DUT.UART_Config[1])
-			parity_bit = ~^DUT.U_RegFile.regfile[ADDR[ADDR_WIDTH_TB-1:0]] ;
+			parity_bit = ~^DUT.U_RegFile.regfile[ADDR] ;
 		else
-			parity_bit = ^DUT.U_RegFile.regfile[ADDR[ADDR_WIDTH_TB-1:0]] ;
+			parity_bit = ^DUT.U_RegFile.regfile[ADDR] ;
 	else
 			parity_bit = 1'b1 ;	
 	
 	//expected frame
     if(DUT.UART_Config[0])
-		expec_out = {1'b1,parity_bit,DUT.U_RegFile.regfile[ADDR[ADDR_WIDTH_TB-1:0]],1'b0} ;
+		expec_out = {1'b1,parity_bit,DUT.U_RegFile.regfile[ADDR],1'b0} ;
 	else
-		expec_out = {1'b1,1'b1,DUT.U_RegFile.regfile[ADDR[ADDR_WIDTH_TB-1:0]],1'b0} ;
+		expec_out = {1'b1,1'b1,DUT.U_RegFile.regfile[ADDR],1'b0} ;
 			
 	if(gener_out == expec_out) 
 		begin
@@ -603,7 +603,7 @@ task CHECK_RD ;
 		end
 	else
 		begin
-			$display("Read Operation is failed with configurations PARITY_ENABLE=%d PARITY_TYPE=%d  PRESCALE=%d Got:%d  Expected:%d  ",DUT.UART_Config[0],DUT.UART_Config[1],DUT.UART_Config[7:2],gener_out, expec_out);
+			$display("Read Operation is failed with configurations PARITY_ENABLE=%d PARITY_TYPE=%d  PRESCALE=%d Got:%b  Expected:%b  ",DUT.UART_Config[0],DUT.UART_Config[1],DUT.UART_Config[7:2],gener_out, expec_out);
 		end
  end
 endtask
@@ -741,7 +741,7 @@ task CHECK_ALU ;
 		end
 	else
 		begin
-			$display("ALU Operation is failed with configurations PARITY_ENABLE=%d PARITY_TYPE=%d  PRESCALE=%d  ",DUT.UART_Config[0],DUT.UART_Config[1],DUT.UART_Config[7:2]);
+			$display("ALU Operation is failed with configurations PARITY_ENABLE=%d PARITY_TYPE=%d  PRESCALE=%d \nGot: %b %b \tExpected: %b %b \t Func:%h \t ALU_OUT:%h",DUT.UART_Config[0],DUT.UART_Config[1],DUT.UART_Config[7:2],gener_byte1,gener_byte0,expec_byte1,expec_byte0,FUNCTION[3:0],ALU_OUT_RESULT);
 		end
 
 	end

@@ -42,7 +42,7 @@ module SYS_TOP #(
     logic RX_CLK, TX_CLK, ALU_CLK;
 
     // FIFO and control signals
-    logic Gate_EN, F_EMPTY, BUSY, RD_INC, FIFO_FULL, WR_INC;
+    logic Gate_EN, F_EMPTY, BUSY, RD_INC, FIFO_FULL,TX_D_VLD, WR_INC;
     logic WrEn, WrEn_P, RdEn, Rd_D_VLD, EN, OUT_Valid;
     logic SYNC_RX_VLD;
     logic clk_div_en;
@@ -75,7 +75,7 @@ module SYS_TOP #(
         .ALU_FUN   (ALU_FUN),
         .WrEN      (WrEn),
         .clk_div_en(clk_div_en),
-        .TX_D_VLD  (WR_INC),
+        .TX_D_VLD  (TX_D_VLD),
         .RdEn      (RdEn),
         .CLK_EN    (Gate_EN),
         .ALU_EN    (EN),
@@ -113,11 +113,18 @@ module SYS_TOP #(
     );
 
     ////////////// PULSE_GEN(RD_INC) //////////////
-    PULSE_GEN U_PULSE_GEN (
+    PULSE_GEN U_PULSE_GEN0 (
         .CLK        (TX_CLK),
         .RST        (SYNC_RST_UART),
         .LVL_SIG         (BUSY),
         .PULSE_SIG  (RD_INC)
+    );
+
+    PULSE_GEN U_PULSE_GEN1 (
+        .CLK        (REF_CLK),
+        .RST        (SYNC_RST_REF),
+        .LVL_SIG    (TX_D_VLD),
+        .PULSE_SIG  (WR_INC)
     );
 
     ////////////// UART //////////////

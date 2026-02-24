@@ -22,7 +22,7 @@ module RegFile #(parameter DATA_WIDTH = 8, ADDRESS_WIDTH = 4)(
         if(!RST) begin
             for (int i = 0; i < 16; i++) begin
                 if(i==2) 
-                    regfile[i] = 32;
+                    regfile[i] = 35;
                 else 
                     regfile[i] <= '0;
             end

@@ -75,6 +75,7 @@ module SYS_CTRL
     logic [3:0]  ADDRESS;      // Latched register address
     logic [15:0] DATA_OUT;     // Latched read data or ALU result for TX
     logic [3:0]  ALU_FUN_REG;  // Registered ALU function code
+    logic lsb_sent;
 
     // =========================================================
     // State register
@@ -95,7 +96,7 @@ module SYS_CTRL
     always_ff @(posedge CLK or negedge RST) begin
         if (!RST)
             CMD_IN <= 8'd0;
-        else if (((current_state == IDLE) | (current_state == FIFO_WR) | (current_state == FIFO_WR_MSB)) && RX_D_VLD)
+        else if (RX_D_VLD)
             CMD_IN <= RX_P_Data;
     end
 
@@ -107,7 +108,7 @@ module SYS_CTRL
     always_ff @(posedge CLK or negedge RST) begin
         if (!RST)
             ADDRESS <= 4'd0;
-        else if ((current_state == WR_ADDR || current_state == RD_ADDR) && RX_D_VLD)
+        else if ((next_state == WR_ADDR || next_state == RD_ADDR) && RX_D_VLD)
             ADDRESS <= RX_P_Data[3:0];
     end
 
@@ -133,8 +134,17 @@ module SYS_CTRL
     always_ff @(posedge CLK or negedge RST) begin
         if (!RST)
             ALU_FUN_REG <= 4'd0;
-        else if (current_state == CAP_FUN && RX_D_VLD)
+        else if (next_state == CAP_FUN && RX_D_VLD)
             ALU_FUN_REG <= RX_P_Data[3:0];
+    end
+
+    always_ff @(posedge CLK or negedge RST) begin
+        if (!RST)
+            lsb_sent <= 1'b0;
+        else if (current_state == FIFO_WR_LSB)
+            lsb_sent <= 1'b1;      // after first cycle
+        else
+            lsb_sent <= 1'b0;      // reset in other states
     end
 
     // =========================================================
@@ -169,13 +179,15 @@ module SYS_CTRL
             // CMD : decode captured command
             // =============================================
             CMD: begin
-                case (CMD_IN)
-                    8'hAA:   next_state = WR_ADDR;
-                    8'hBB:   next_state = RD_ADDR;
-                    8'hCC:   next_state = CAP_A;
-                    8'hDD:   next_state = CAP_FUN;
-                    default: next_state = IDLE;
-                endcase
+                if (RX_D_VLD) begin
+                    case (CMD_IN)
+                        8'hAA:   next_state = WR_ADDR;
+                        8'hBB:   next_state = RD_ADDR;
+                        8'hCC:   next_state = CAP_A;
+                        8'hDD:   next_state = CAP_FUN;
+                        default: next_state = IDLE;
+                    endcase
+                end
             end
 
             // =============================================
@@ -187,11 +199,11 @@ module SYS_CTRL
             end
 
             WR_DATA: begin
-                if (RX_D_VLD)
-                    next_state = IDLE;   // always return cleanly
                 Address = ADDRESS;
-                WrEN    = RX_D_VLD;     // pulse only when valid
+                WrEN    = 1'b1;
                 WrData  = RX_P_Data;
+                if(RX_D_VLD)
+                    next_state = CMD;
             end
 
             // =============================================
@@ -207,7 +219,8 @@ module SYS_CTRL
             FIFO_WR: begin
                 TX_D_VLD  = 1'b1;
                 TX_P_DATA = DATA_OUT[7:0];
-                next_state = RX_D_VLD ? CMD : IDLE;
+                if(RX_D_VLD)
+                    next_state = CMD;
             end
 
             // =============================================
@@ -239,13 +252,17 @@ module SYS_CTRL
             FIFO_WR_LSB: begin
                 TX_D_VLD  = 1'b1;
                 TX_P_DATA = DATA_OUT[7:0];
-                next_state = FIFO_WR_MSB;
+                if(lsb_sent)  begin
+                    TX_D_VLD  = 1'b0;
+                    next_state = FIFO_WR_MSB;
+                end
             end
 
             FIFO_WR_MSB: begin
                 TX_D_VLD  = 1'b1;
                 TX_P_DATA = DATA_OUT[15:8];
-                next_state = RX_D_VLD ? CMD : IDLE;
+                if(RX_D_VLD)
+                    next_state = CMD;
             end
 
             default: next_state = IDLE;

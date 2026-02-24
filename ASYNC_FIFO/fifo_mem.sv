@@ -44,7 +44,7 @@ module fifo_mem
     // Read operation
     //--------------------------------------------------
     always_ff @(posedge rclk) begin
-        if (r_en & ~empty) begin
+        if (~empty) begin
             data_out <= mem[r_addr];
         end
     end
